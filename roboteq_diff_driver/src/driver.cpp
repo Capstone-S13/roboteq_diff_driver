@@ -181,6 +181,9 @@ protected:
   int encoder_cpr;
   double max_amps;
   int max_rpm;
+  int K_P;
+  int K_I;
+  int K_D;
 
 };
 
@@ -215,7 +218,10 @@ MainNode::MainNode() :
   encoder_ppr(0),
   encoder_cpr(0),
   max_amps(0.0),
-  max_rpm(0)
+  max_rpm(0),
+  K_P(0),
+  K_I(0),
+  K_D(0)
 {
 
 
@@ -249,6 +255,12 @@ MainNode::MainNode() :
   ROS_INFO_STREAM("max_amps: " << max_amps);
   nhLocal.param("max_rpm", max_rpm, 100);
   ROS_INFO_STREAM("max_rpm: " << max_rpm);
+  nhLocal.param("K_P", K_P, 10);
+  ROS_INFO_STREAM("K_P: " << K_P);
+  nhLocal.param("K_I", K_I, 80);
+  ROS_INFO_STREAM("K_I: " << K_I);
+  nhLocal.param("K_D", K_D, 0);
+  ROS_INFO_STREAM("K_D: " << K_D);
 
 }
 
@@ -357,12 +369,35 @@ void MainNode::cmdvel_setup()
   controller.write("^MDEC 2 20000\r");
 
   // set PID parameters (gain * 10)
-  controller.write("^KP 1 10\r");
-  controller.write("^KP 2 10\r");
-  controller.write("^KI 1 80\r");
-  controller.write("^KI 2 80\r");
-  controller.write("^KD 1 0\r");
-  controller.write("^KD 2 0\r");
+  std::stringstream right_kpcmd;
+  std::stringstream left_kpcmd;
+  right_kpcmd << "^KP 1 " << K_P << "\r";
+  left_kpcmd << "^KP 2 " << K_P << "\r";
+  controller.write(right_kpcmd.str());  
+  controller.write(left_kpcmd.str());
+  std::cout << "Setting KP to " << K_P << std::endl;
+
+  std::stringstream right_kicmd;
+  std::stringstream left_kicmd;
+  right_kicmd << "^KI 1 " << K_I << "\r";
+  left_kicmd << "^KI 2 " << K_I << "\r";
+  controller.write(right_kicmd.str());  
+  controller.write(left_kicmd.str());
+  std::cout << "Setting KI to " << K_I << std::endl;
+  
+  std::stringstream right_kdcmd;
+  std::stringstream left_kdcmd;
+  right_kdcmd << "^KD 1 " << K_D << "\r";
+  left_kdcmd << "^KD 2 " << K_D << "\r";
+  controller.write(right_kdcmd.str());  
+  controller.write(left_kdcmd.str());
+  std::cout  << "Setting  KD to " << K_D << std::endl;
+  //controller.write("^KP 1 10\r");
+  //controller.write("^KP 2 10\r");
+  //controller.write("^KI 1 80\r");
+  //controller.write("^KI 2 80\r");
+  //controller.write("^KD 1 0\r");
+  //controller.write("^KD 2 0\r");
 
   // set encoder mode (18 for feedback on motor1, 34 for feedback on motor2)
   controller.write("^EMOD 1 18\r");
@@ -598,6 +633,7 @@ void MainNode::odom_loop()
 #ifdef _ODOM_DEBUG
 ROS_DEBUG_STREAM("encoder right: " << odom_encoder_right << " left: " << odom_encoder_left);
 #endif
+ROS_DEBUG_STREAM("encoder right: " << odom_encoder_right << " left: " << odom_encoder_left);
             odom_publish();
             break;
           }
